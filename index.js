@@ -22,8 +22,8 @@
                 y: ( 600),
                 size: 40,
                 speed: 20,
-                id: "knight",
-                src: "knight",
+                id: "mage",
+                src: "mage",
                 hp: 10,
                 group: "hoard",
                 drag: false

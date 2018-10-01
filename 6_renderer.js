@@ -31,7 +31,6 @@
                 };
         })();
 
-
         function loop() {
             clear();
             update();

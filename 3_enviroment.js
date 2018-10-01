@@ -23,9 +23,12 @@ var enviroment = {
         });
     },
 
-    update: function(ctx) {        this.collection.forEach((x, i, arr) => {
-        x.update(arr)
-    });
+    update: function(ctx) {
+        
+        this.collection.forEach((x, i, arr) => {
+            x.update(arr)
+        });
+
         ctx.drawImage(bg.src, bg.x, bg.y, bg.w, bg.h);
         ctx.drawImage(gold_icon.src, gold_icon.x, gold_icon.y, gold_icon.w, gold_icon.h);
         ctx.drawImage(tower_icon.src, tower_icon.x, tower_icon.y, tower_icon.w, tower_icon.h);
