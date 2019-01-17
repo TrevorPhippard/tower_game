@@ -7,21 +7,622 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Document</title>
   <style>
-    html,body, canvas{
+    html,
+    body,
+    canvas {
       position: absolute;
       top: -3px;
-    left: -3px;
+      left: -3px;
     }
 
-#container {
-    position: absolute;
+    #container {
+      position: absolute;
 
-}
-    canvas { 
-      border: 1px solid #000
+    }
+
+    canvas {
+      border: 1px solid #000;
+      cursor: pointer;
+    }
+
+    #info {
+      position: absolute;
+      top: 620px;
+      left: 0px;
+      width: 250px;
+      list-style: none;
+    }
+
+    #info li {
+      padding-bottom: 10px;
     }
   </style>
 </head>
+
+<script>
+  (function (window) {
+
+    /**
+     * @name Silly_DEMO_GAME
+     * 
+     * @author Trevor Phippard:
+     * @version 1.0
+     * 
+     * @fileoverview Silly Game, drag towers and units onto screen to protect top of page.
+     */
+
+    "use strict";
+
+
+    /** --------------------------------
+     * @name UTILS
+     * --------------------------------*/
+
+    function log(string) {
+      var cc = document.getElementById('console')
+      cc.innerHTML = string;
+      setTimeout(() => {
+        cc.innerHTML = 'console: -- ';
+      }, 1000);
+    }
+
+    function dist(x1, y1, x2, y2) {
+      return Math.floor(Math.sqrt(((x1 - x2) * (x1 - x2)) + ((y1 - y2) * (y1 - y2))));
+    };
+
+    function sortByDistance(c, d) {
+      return c.d > d.d ? 1 : d.d > c.d ? -1 : 0;
+    };
+
+    function towards(c, d, e) {
+      return Math.floor((c - d) / e);
+    };
+
+    function makeid() {
+      for (
+        var c = "",
+        d = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+        e = 0;
+        5 > e;
+        e++
+      )
+        c += d.charAt(Math.floor(Math.random() * d.length));
+      return c;
+    };
+
+    function createImage(c) {
+      var d = new Image();
+      return (d.src = "imgs/" + c + ".png"), d;
+    };
+
+
+    function isOn(c, d, e) {
+      return d > c.x && d < c.x + 50 && e > c.y && e < c.y + 50;
+    };
+
+    function inOrder(gold, obj, my) {
+      return (gold > obj.cost) && my > menuStart;
+    }
+
+    function canPick(btn, el, mx, my) {
+
+      var predicate = isOn(btn, mx, my) && inOrder(gold, btn, my);
+
+      if (predicate) {
+        unitSelected = el;
+        gold -= btn.cost;
+        return true
+      } else {
+        return false
+      }
+    }
+
+
+
+
+    /** --------------------------------
+     * @name UNITS
+     * --------------------------------*/
+
+
+
+    mine = {
+      x: 600,
+      y: 300,
+      w: 75,
+      h: 75,
+      speed: 1,
+      id: 'mine',
+      src: 'mine',
+      hp: 10,
+      group: 'alliance',
+      power:0
+    };
+
+    tower = {
+      x: 600,
+      y: 300,
+      w: 150,
+      h: 150,
+      speed: 2000,
+      id: 'tower',
+      src: 'tower',
+      hp: 10,
+      group: 'alliance',
+      power:20
+    };
+
+    mage = {
+      x: 600,
+      y: 300,
+      w: 60,
+      h: 60,
+      speed: 500,
+      id: 'mage',
+      src: 'good_mage',
+      hp: 10,
+      group: 'alliance',
+      power:5
+    };
+
+    knight = {
+      x: 600,
+      y: 300,
+      w: 60,
+      h: 60,
+      speed: 1,
+      id: 'knight',
+      src: 'knight',
+      hp: 10,
+      group: 'alliance',
+      power:5
+    };
+
+    EvilWizard = {
+      x: 600,
+      y: 525,
+      w: 60,
+      h: 60,
+      speed: 20,
+      id: "mage",
+      src: "mage",
+      hp: 10,
+      group: "hoard",
+      drag: false
+    };
+
+    EvilKnight = {
+      x: 600,
+      y: 525,
+      w: 60,
+      h: 60,
+      speed: 20,
+      id: "knight",
+      src: "knight",
+      hp: 15,
+      group: "hoard",
+      drag: false
+    };
+
+    gold_icon = {
+      src: createImage('gold_icon'),
+      x: 0,
+      y: 550,
+      w: 50,
+      h: 50,
+      cost: 1000
+    };
+
+    tower_icon = {
+      src: createImage('tower_icon'),
+      x: 50,
+      y: 550,
+      w: 50,
+      h: 50,
+      cost: 50
+    };
+
+    mage_icon = {
+      src: createImage('mage_icon'),
+      x: 100,
+      y: 550,
+      w: 50,
+      h: 50,
+      cost: 25
+    };
+
+    knight_icon = {
+      src: createImage('knight_icon'),
+      x: 150,
+      y: 550,
+      w: 50,
+      h: 50,
+      cost: 500
+    };
+
+    bg = {
+      src: createImage('ground'),
+      x: 0,
+      y: 0,
+      w: 600,
+      h: 600
+    };
+
+    gold_bg = {
+      src: createImage('gold_bg'),
+      x: 200,
+      y: 550,
+      w: 400,
+      h: 50
+    };
+
+    /** --------------------------------
+     * @name ENVIROMENT
+     * --------------------------------*/
+
+    enviroment = {
+
+      collection: [],
+
+      add: function add(o) {
+        this.collection.push(o);
+      },
+
+      remove: function remove(name) {
+        this.collection.forEach(function (x, i, arr) {
+          x.name === name && arr.splice(i, 1);
+        });
+      },
+
+      update: function update() {
+        this.collection.forEach(function (x, i, arr) {
+          x.update(arr);
+        });
+      },
+
+      nearestNeighbour: function (self) {
+        var neighbours = [];
+        this.collection.forEach(function (element) {
+          self !== element &&
+            "projectile" !== element.id &&
+            "alliance" !== element.group &&
+            neighbours.push({ name: element, d: dist(self.x, self.y, element.x, element.y) }),
+            neighbours.sort(sortByDistance),
+            0 < neighbours.length && (self.target = neighbours[0].name);
+        });
+      }
+    };
+
+    /** --------------------------------
+     * @name CREATE-UNIT-CLASS
+     * --------------------------------*/
+
+    function createUnit(o) {
+
+      this.x = o.x;
+      this.y = o.y;
+      this.src = createImage(o.src);
+      this.id = o.id;
+      this.name = makeid();
+      this.w = o.w;
+      this.h = o.h;
+      this.range = standarUnitRange;
+      this.hp = o.hp;
+      this.power = o.power;
+      this.target = o.target || void 0;
+      this.dir = void 0;
+      this.group = o.group;
+      this.speed = o.speed;
+      this.cost = o.cost;
+    }
+
+    createUnit.prototype.closeGap = function (v) {
+      this.x += towards(this.target.x, this.x, v * this.speed);
+      this.y += towards(this.target.y, this.y, v * this.speed);
+    };
+
+    createUnit.prototype.update = function () { };
+
+    /** --------------------------------
+     * @name CREATE-ENEMY-CLASS
+     * --------------------------------*/
+
+    var createEnemy = function (o) {
+      createUnit.call(this, o), enviroment.add(this);
+    };
+
+    createEnemy.prototype = Object.create(createUnit.prototype);
+
+    createEnemy.prototype.update = function () {
+
+      var b = dist(this.x, this.y, this.target.x, this.target.y);
+      this.closeGap(b)
+
+      1 > this.y && ((gameStatus = !1), log("GameOver!!!"));
+      1 > this.hp && enviroment.remove(this.name);
+    };
+
+
+
+    /** --------------------------------
+     * @name CREATE-GOOD-CLASS
+     * --------------------------------*/
+
+    var createGood = function (o) {
+
+      var c = this;
+
+      createUnit.call(this, o);
+      enviroment.add(this);
+
+      setInterval(function () {
+        c.attack();
+      }, o.speed);
+
+    };
+
+    createGood.prototype = Object.create(createUnit.prototype);
+
+    createGood.prototype.update = function () {
+      this.findTarget(enviroment.collection);
+    };
+
+    createGood.prototype.attack = function () {
+      if (this.target !== void 0) {
+        var a = dist(this.x, this.y, this.target.x, this.target.y);
+
+        if (a < this.range) {
+          var fireball = new createFireball({
+            target: this.target,
+            x: this.x + this.w / 2,
+            y: this.y,
+            w: this.w / 2,
+            h: this.h / 2,
+            speed: 0.1,
+            id: "projectile",
+            src: "fire",
+            hp: 1,
+            power: this.power
+          });
+          enviroment.add(fireball);
+        }
+
+        this.target = void 0;
+      }
+    };
+
+    createGood.prototype.findTarget = function () {
+      var a = this;
+      0 < enviroment.collection.length && enviroment.nearestNeighbour(a);
+    };
+
+
+
+    /** --------------------------------
+     * @name CREATEFIREBALL-CLASS
+     * --------------------------------*/
+
+    var createFireball = function (b) {
+      createUnit.call(this, b);
+    };
+
+    createFireball.prototype = Object.create(createUnit.prototype);
+    createFireball.prototype.update = function () {
+      if (this.target !== void 0) {
+
+        var b = dist(this.x, this.y, this.target.x, this.target.y);
+        10 < b
+          ? this.closeGap(b)
+          : ((this.target.hp -= this.power), (this.hp = 0), enviroment.remove(this.name));
+      }
+    };
+
+    /** --------------------------------
+     * @name BUILDING-CLASS
+     * --------------------------------*/
+
+    var building = function (b) {
+      createUnit.call(this, b);
+    };
+
+    building.prototype = Object.create(createUnit.prototype);
+    building.prototype.update = function () {
+      gold += 1;
+    };
+
+    /** --------------------------------
+     * @name CLASS-UTILS
+     * --------------------------------*/
+
+    function createObj(obj, mx, my) {
+      (obj.x = mx); (obj.y = my), new createGood(obj);
+    }
+
+
+
+    /** --------------------------------
+     * @name MOUSE-EVENTS
+     * --------------------------------*/
+
+    function mouseDown(e) {
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      var mx = parseInt(e.clientX);
+      var my = parseInt(e.clientY);
+
+      if (dragImage !== false && unitSelected !== false) {
+        new createObj(
+          unitSelected,
+          mx - (unitSelected.w / 2),
+          my - (unitSelected.h / 2)
+        );
+        enviroment.remove(dragImage.name)
+      } else {
+        console.log("click");
+      }
+
+      if (
+        canPick(gold_icon, mine, mx, my) ||
+        canPick(tower_icon, tower, mx, my) ||
+        canPick(mage_icon, mage, mx, my) ||
+        canPick(knight_icon, knight, mx, my)
+      ) {
+        dragImage = new createUnit(unitSelected);
+        enviroment.add(dragImage)
+      } else {
+        dragImage = false;
+        unitSelected = false;
+        if (my > menuStart) {
+          log('not enough gold');
+        }
+      }
+    };
+
+    function mouseMove(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (dragImage !== false) {
+        var mx = parseInt(e.clientX) - (dragImage.w / 2);
+        var my = parseInt(e.clientY) - (dragImage.h / 2);
+        dragImage.x = mx;
+        dragImage.y = my;
+      }
+    };
+
+    function mouseUp(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+
+    /** --------------------------------
+     * @name RENDERER
+     * --------------------------------*/
+
+    function createCanvas(vW, vH) {
+
+      function loop() {
+        clear(), gameStatus && (update(), queue());
+      }
+
+      function clear() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+
+      function update() {
+
+        draw(bg);
+
+        enviroment.update(ctx);
+        enviroment.collection.forEach(draw);
+        [gold_bg, gold_icon, tower_icon, mage_icon, knight_icon].forEach(draw);
+
+        ctx.font = "18px Arial";
+        ctx.fillStyle = "gold";
+        ctx.fillText("Gold: " + gold, 222, 580);
+      }
+
+      function draw(obj) {
+        ctx.drawImage(obj.src, obj.x, obj.y, obj.w, obj.h);
+      }
+
+      function queue() {
+        window.requestAnimationFrame(loop);
+      }
+
+      canvas = document.querySelector("canvas");
+      ctx = canvas.getContext("2d");
+
+      canvas.width = vW;
+      canvas.height = vH;
+      canvas.onmousedown = mouseDown;
+      canvas.onmouseup = mouseUp;
+      canvas.onmousemove = mouseMove;
+
+      (window.requestAnimFrame = (function () {
+        return (
+          window.requestAnimationFrame ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame ||
+          window.oRequestAnimationFrame ||
+          window.msRequestAnimationFrame ||
+          function (j) {
+            window.setTimeout(j, 1000 / 60);
+          }
+        );
+      })());
+
+      loop();
+    }
+
+
+    /** --------------------------------
+     * @name GAME-CLOCK
+     * --------------------------------*/
+
+    function gameClock() {
+      setInterval(function () { gold++; }, 500)
+      setInterval(function () {
+
+
+
+        var e = 0.5 > Math.random() ? new createEnemy(EvilWizard) : new createEnemy(EvilKnight);
+
+        e.target = {
+          x: 0,
+          y: 0
+        };
+
+        100 > cntDown && (cntDown -= 100);
+      }, cntDown);
+    }
+
+
+
+    /** --------------------------------
+     * @name onload_event
+     * --------------------------------*/
+
+    var canvas;
+    var ctx;
+    var cc;
+
+    var mine
+    var tower
+    var mage
+    var knight
+    var EvilWizard
+    var EvilKnight
+    var gold_icon
+    var tower_icon
+    var mage_icon
+    var knight_icon
+    var bg
+    var gold_bg
+    var enviroment
+
+    var gameStatus = true;
+    var gold = 50;
+    var cntDown = 6000;
+    var unitSelected = false;
+    var dragImage = false;
+
+    var standarUnitRange = 300;
+    var menuStart = 500;
+ 
+
+
+
+    window.addEventListener("load", function () {
+      createCanvas(600, 600); gameClock();
+    }, !1);
+
+  })(window)
+
+</script>
 
 <body>
   <div id="container">
@@ -29,13 +630,16 @@
       Aww, your browser doesn't support HTML5!
     </canvas>
   </div>
-  <script src="1_utils.js"></script>
-  <script src="2_unit.js"></script>
-  <script src="3_enviroment.js"></script>
-  <script src="4_constructors.js"></script>
-  <script src="5_mouseEvents.js"></script>
-  <script src="6_renderer.js"></script>
-  <script src="index.js"></script>
+
+  <ul id="info">
+    <li>tower: $50</li>
+    <li>mage: $25</li>
+    <li>knight: coming soon</li>
+    <li>mine: coming soon</li>
+    <li>----------</li>
+    <li id="console">Game Console: --</li>
+
+  </ul>
 </body>
 
 </html>
